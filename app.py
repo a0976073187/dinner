@@ -9,7 +9,7 @@ LOGO_IMAGE = "logo.webp"
 has_logo = os.path.exists(LOGO_IMAGE)
 
 st.set_page_config(
-    page_title="學生晚餐費用統計系統",
+    page_title="學生晚餐費用登記",
     page_icon=LOGO_IMAGE if has_logo else "🍽️",
     layout="centered"
 )

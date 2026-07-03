@@ -114,7 +114,7 @@ if page == "📝 填寫晚餐紀錄":
     note = st.text_input("備註（晚餐類型，例如：麥當勞、便當）", st.session_state["last_note"])
     
     submit = st.button("🚀 送出紀錄")
-
+    st.success("🎉 紀錄已成功送出！")
     if submit:
         if selected_display == "請選擇學生...":
             st.error("❌ 請先選擇一位學生！")
@@ -132,6 +132,7 @@ if page == "📝 填寫晚餐紀錄":
             df.to_csv(DB_FILE, index=False)
             st.success(f"✅ 已成功記錄：【{grade}】{pure_name} 吃了 {price} 元！")
             st.rerun()
+            st.success("🎉 紀錄已成功送出！")
 
 # ==================== 頁面 2：每月費用彙整 ====================
 elif page == "📊 每月費用彙整":

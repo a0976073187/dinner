@@ -131,7 +131,7 @@ if page == "📝 填寫晚餐紀錄":
             updated_data = new_row
             
         conn.update(
-            spreadsheet="https://docs.google.com/spreadsheets/d/1dZf3ua1q_FQkOhA8b_7__R_qWHZNsz2ror37OfUnILc/edit?gid=0#gid=0",
+            spreadsheet="https://google.com",
             data=updated_data
         )
         

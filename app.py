@@ -1,4 +1,5 @@
 ﻿import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import os
@@ -115,24 +116,34 @@ if page == "📝 填寫晚餐紀錄":
     
     confirm = st.checkbox("勾選此處，確認資料無誤")
     submit = st.button("🚀 送出紀錄", disabled=not confirm)
-    if submit:
-        if selected_display == "請選擇學生...":
-            st.error("❌ 請先選擇一位學生！")
-        elif price <= 0:
-            st.error("❌ 金額必須大於 0 元！")
+   if submit:
+      try:
+        conn = st.connection("gsheets", type=GSheetsConnection)
+    
+        existing_data = conn.read(ttl=0)
+        
+        new_row = pd.DataFrame([{
+            "日期": date.strftime('%Y-%m-%d'),
+            "學生姓名": selected_display,
+            "晚餐金額": price,
+            "備註": note
+        }])
+        
+        if existing_data is not None and not existing_data.empty:
+            updated_data = pd.concat([existing_data, new_row], ignore_index=True)
         else:
-            st.session_state["last_date"] = date
-            st.session_state["last_note"] = note
+            updated_data = new_row
             
-            pure_name = selected_display.split("] ")[1]
-            grade = STUDENT_LIST.get(pure_name, "未知名級")
-            
-            new_data = pd.DataFrame([[date.strftime("%Y-%m-%d"), pure_name, grade, price, note]], columns=["日期", "姓名", "年級", "金額", "備註"])
-            df = pd.concat([df, new_data], ignore_index=True)
-            df.to_csv(DB_FILE, index=False)
-            st.success(f"✅ 已成功記錄：【{grade}】{pure_name} 吃了 {price} 元！")
-            st.rerun()
-            st.success("🎉 紀錄已成功送出！")
+        conn.update(
+            spreadsheet="https://docs.google.com/spreadsheets/d/1dZf3ua1q_FQkOhA8b_7__R_qWHZNsz2ror37OfUnILc/edit?gid=0#gid=0",
+            data=updated_data
+        )
+        
+        st.success("🎉 紀錄已成功同步至 Google 雲端試算表！")
+        st.balloons()
+        
+    except Exception as e:
+        st.error(f"系統寫入失敗，錯誤訊息: {e}")
 
 # ==================== 頁面 2：每月費用彙整 ====================
 elif page == "📊 每月費用彙整":

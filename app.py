@@ -61,7 +61,6 @@ GRADE_ORDER = {
     "未知名級": 7
 }
 
-# 產生按照年級排序的下拉選單名單
 sorted_students_info = sorted(
     STUDENT_LIST.items(), 
     key=lambda x: (GRADE_ORDER.get(x[1], 99), x[0])
@@ -69,7 +68,6 @@ sorted_students_info = sorted(
 name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_info]
 # ================================================================
 
-# 載入資料
 if os.path.exists(DB_FILE):
     try:
         df = pd.read_csv(DB_FILE)
@@ -77,8 +75,6 @@ if os.path.exists(DB_FILE):
         df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註"])
 else:
     df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註"])
-
-# --- 側邊欄導覽選單 ---
 st.sidebar.title("系統選單")
 
 if has_logo:
@@ -86,7 +82,6 @@ if has_logo:
 
 page = st.sidebar.radio("請選擇功能：", ["📝 填寫晚餐紀錄", "📊 每月費用彙整", "⚙️ 管理歷史紀錄"])
 
-# 確保日期格式正確
 if not df.empty:
     df["日期"] = pd.to_datetime(df["日期"], format='mixed')
     df["月份"] = df["日期"].dt.strftime("%Y-%m")
@@ -98,7 +93,6 @@ if page == "📝 填寫晚餐紀錄":
         with col2:
             st.image(LOGO_IMAGE, width=200)
             
-    # 💡 修正點：移除含有 HTML 的 st.markdown 語法，改用最新標準原生標題
     st.title("📝 學生晚餐紀錄系統")
     st.write("請在下方輸入今日的訂餐資訊：")
     

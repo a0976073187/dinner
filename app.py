@@ -40,30 +40,40 @@ name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_inf
 
 # ============================== 統一從 Google 試算表載入資料 ==============================
 try:
-    # 💡 終極相容：改用不依賴額外套件的網址轉 CSV 讀取法，完美支援 Python 3.14 環境
-    csv_url = GSHEETS_URL.replace("/edit", "/export?format=csv")
-    df = pd.read_csv(csv_url)
+    # 去除網址小尾巴，轉為 CSV 格式讀取
+    clean_url = GSHEETS_URL.split("/edit")[0] + "/edit"
+    csv_url = clean_url.replace("/edit", "/export?format=csv")
+    raw_df = pd.read_csv(csv_url)
     
-    if df is None or df.empty:
-        df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註", "月份"])
-    else:
-        df.columns = df.columns.str.strip()
-        df = df.rename(columns={"學生姓名": "姓名", "晚餐金額": "金額"})
+    if raw_df is not None and not raw_df.empty:
+        raw_df.columns = raw_df.columns.str.strip()
+        df = pd.DataFrame()
         
-        if "日期" in df.columns:
-            df["日期"] = pd.to_datetime(df["日期"], errors='coerce')
-            df["月份"] = df["日期"].dt.strftime("%Y-%m")
+        # 💡 局部核心修正：如果第一欄是時間戳記，改用欄位位置強制指定，完全解決 None 的問題
+        if "時間戳記" in raw_df.columns or raw_df.shape[1] >= 5:
+            df["日期"] = raw_df.iloc[:, 1]  # 第 2 欄是日期
+            df["姓名"] = raw_df.iloc[:, 2]  # 第 3 欄是學生姓名
+            df["金額"] = raw_df.iloc[:, 3]  # 第 4 欄是晚餐金額
+            df["備註"] = raw_df.iloc[:, 4] if raw_df.shape[1] > 4 else ""  # 第 5 欄是備註
         else:
-            df["月份"] = datetime.now().strftime("%Y-%m")
-            
-        if "姓名" in df.columns:
-            df["年級"] = df["姓名"].map(STUDENT_LIST).fillna("未知名級")
-        else:
-            df["年級"] = "未知名級"
+            df["日期"] = raw_df.iloc[:, 0] if raw_df.shape[1] > 0 else ""
+            df["姓名"] = raw_df.iloc[:, 1] if raw_df.shape[1] > 1 else ""
+            df["金額"] = raw_df.iloc[:, 2] if raw_df.shape[1] > 2 else ""
+            df["備註"] = raw_df.iloc[:, 3] if raw_df.shape[1] > 3 else ""
+
+        # 格式清理
+        df["姓名"] = df["姓名"].astype(str).str.strip().str.replace(r"^\[.*\]\s*", "", regex=True)
+        df["金額"] = pd.to_numeric(df["金額"], errors='coerce').fillna(0)
+        df["日期"] = pd.to_datetime(df["日期"], errors='coerce')
+        df["月份"] = df["日期"].dt.strftime("%Y-%m").fillna(datetime.now().strftime("%Y-%m"))
+        df["年級"] = df["姓名"].map(STUDENT_LIST).fillna("未知名級")
+    else:
+        df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註", "月份"])
             
 except Exception as e:
     st.error(f"雲端資料庫讀取失敗: {e}")
     df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註", "月份"])
+
 
 # --- 側邊欄導覽選單 ---
 st.sidebar.title("系統選單")

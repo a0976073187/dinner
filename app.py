@@ -42,13 +42,8 @@ name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_inf
 try:
     clean_url = GSHEETS_URL.split("/edit") + "/edit"
         
-    if "gid=" in GSHEETS_URL:
-        base_url = GSHEETS_URL.split("/edit")
-        gid_part = GSHEETS_URL.split("edit")[-1].replace("?", "").replace("#", "")
-        csv_url = f"{base_url}/export?format=csv&{gid_part}"
-    else:
-        base_url = GSHEETS_URL.split("/edit")
-        csv_url = f"{base_url}/export?format=csv"
+        # 💡 終極局部修正：用純文字取代法直接換網址，100% 避開 list 拼接錯誤！
+    csv_url = GSHEETS_URL.replace("/edit", "/export?format=csv").replace("#", "&")
 
     raw_df = pd.read_csv(csv_url)
     

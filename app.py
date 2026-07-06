@@ -14,6 +14,8 @@ st.set_page_config(
     page_icon=LOGO_IMAGE if has_logo else "🍽️",
     layout="centered"
 )
+
+st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 # ================================================================
 
 # 設定檔案名稱

@@ -116,7 +116,10 @@ elif page == "📊 每月費用彙整":
         
         display_df = df.copy()
         display_df["日期"] = display_df["日期"].dt.strftime("%Y-%m-%d")
-        history_df = display_df[["日期", "年級", "姓名", "金額", "備註"]].sort_values(by="日期", ascending=False)
+        available_cols = [c for c in ["日期", "年級", "姓名", "金額", "備註"] if c in display_df.columns]
+        history_df = display_df[available_cols]
+        if "日期" in history_df.columns:
+            history_df = history_df.sort_values(by="日期", ascending=False)
         
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine='openpyxl') as writer:

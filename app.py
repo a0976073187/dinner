@@ -75,7 +75,7 @@ page = st.sidebar.radio("請選擇功能：", ["📝 填寫晚餐紀錄", "📊 
 # ============================== 頁面 1：填寫紀錄 ==============================
 if page == "📝 填寫晚餐紀錄":
     if has_logo:
-        coll, col2, col3 = st.columns()
+        coll, col2, col3 = st.columns(3)
         with col2:
             st.image(LOGO_IMAGE, width=200)
             

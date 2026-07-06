@@ -49,7 +49,7 @@ try:
         df = pd.DataFrame()
         
         # 💡 位置防呆：如果第一欄是時間戳記，改用欄位位置強制指定，完全解決 None 與錯位問題
-       if "時間戳記" in raw_df.columns or raw_df.shape[1] >= 5:
+        if "時間戳記" in raw_df.columns or raw_df.shape[1] >= 5:
             df["日期"] = raw_df.iloc[:, 1]  # 第 2 欄是日期
             df["姓名"] = raw_df.iloc[:, 2]  # 第 3 欄是學生姓名
             df["金額"] = raw_df.iloc[:, 3]  # 第 4 欄是晚餐金額

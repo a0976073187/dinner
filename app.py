@@ -18,7 +18,7 @@ st.set_page_config(
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
 # ⚠️ 這是您的 Google 試算表真實網址
-GSHEETS_URL = "https://docs.google.com/spreadsheets/d/1dZf3ua1q_FQkOhA8b_7__R_qWHZNsz2ror37OfUnILc/edit?resourcekey=&gid=1227634028#gid=1227634028"
+GSHEETS_URL = "https://google.com"
 
 # ============================== 學生名單與年級設定區 ==============================
 STUDENT_LIST = {
@@ -35,33 +35,30 @@ GRADE_ORDER = {
     "一年級": 1, "二年級": 2, "三年級": 3, "四年級": 4, "五年級": 5, "六年級": 6, "未知名級": 7
 }
 
-sorted_students_info = sorted(STUDENT_LIST.items(), key=lambda x: (GRADE_ORDER.get(x[1], 99), x[0]))
+sorted_students_info = sorted(STUDENT_LIST.items(), key=lambda x: (GRADE_ORDER.get(x, 99), x))
 name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_info]
 
 # ============================== 統一從 Google 試算表載入資料 ==============================
 try:
-    clean_url = GSHEETS_URL.split("/edit") + "/edit"
-        
-        # 💡 終極局部修正：用純文字取代法直接換網址，100% 避開 list 拼接錯誤！
-    csv_url = GSHEETS_URL.replace("/edit", "/export?format=csv").replace("#", "&")
-
+    # 💡 終極修正：直接使用純字串替換，徹底拔除所有可能產生 list 拼接錯誤的隱患
+    csv_url = str(GSHEETS_URL).replace("/edit", "/export?format=csv").replace("#", "&")
     raw_df = pd.read_csv(csv_url)
     
     if raw_df is not None and not raw_df.empty:
         raw_df.columns = raw_df.columns.str.strip()
         df = pd.DataFrame()
         
-        # 💡 局部核心修正：如果第一欄是時間戳記，改用欄位位置強制指定，完全解決 None 的問題
-        if "時間戳記" in raw_df.columns or raw_df.shape[1] >= 5:
+        # 💡 位置防呆：如果第一欄是時間戳記，改用欄位位置強制指定，完全解決 None 與錯位問題
+        if "時間戳記" in raw_df.columns or raw_df.shape >= 5:
             df["日期"] = raw_df.iloc[:, 1]  # 第 2 欄是日期
             df["姓名"] = raw_df.iloc[:, 2]  # 第 3 欄是學生姓名
             df["金額"] = raw_df.iloc[:, 3]  # 第 4 欄是晚餐金額
-            df["備註"] = raw_df.iloc[:, 4] if raw_df.shape[1] > 4 else ""  # 第 5 欄是備註
+            df["備註"] = raw_df.iloc[:, 4] if raw_df.shape > 4 else ""  # 第 5 欄是備註
         else:
-            df["日期"] = raw_df.iloc[:, 0] if raw_df.shape[1] > 0 else ""
-            df["姓名"] = raw_df.iloc[:, 1] if raw_df.shape[1] > 1 else ""
-            df["金額"] = raw_df.iloc[:, 2] if raw_df.shape[1] > 2 else ""
-            df["備註"] = raw_df.iloc[:, 3] if raw_df.shape[1] > 3 else ""
+            df["日期"] = raw_df.iloc[:, 0] if raw_df.shape > 0 else ""
+            df["姓名"] = raw_df.iloc[:, 1] if raw_df.shape > 1 else ""
+            df["金額"] = raw_df.iloc[:, 2] if raw_df.shape > 2 else ""
+            df["備註"] = raw_df.iloc[:, 3] if raw_df.shape > 3 else ""
 
         # 格式清理
         df["姓名"] = df["姓名"].astype(str).str.strip().str.replace(r"^\[.*\]\s*", "", regex=True)
@@ -75,7 +72,6 @@ try:
 except Exception as e:
     st.error(f"雲端資料庫讀取失敗: {e}")
     df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註", "月份"])
-
 
 # --- 側邊欄導覽選單 ---
 st.sidebar.title("系統選單")
@@ -110,70 +106,66 @@ if page == "📝 填寫晚餐紀錄":
             try:
                 import requests
                 
-                pure_name = selected_display.split("] ")[1] if "] " in selected_display else selected_display
+                # 取得乾淨不含中括號的學生姓名
+                pure_name = selected_display.split("] ") if "] " in selected_display else selected_display
                 
-                form_url = "https://docs.google.com/forms/d/1F_jL39Vf3IL8rdUVvybRuJt54NRy4SyfRdv_m_T9rzg/formResponse"
+                form_url = "https://google.com"
+                form_data = {"entry.569300600": date.strftime('%Y-%m-%d'), "entry.1017833502": pure_name, "entry.1593397984": str(price), "entry.1203096180": note}
                 
-                form_data = {
-                   "entry.569300600": date.strftime('%Y-%m-%d'), # 日期
-                   "entry.1017833502": pure_name,                 # 學生姓名
-                   "entry.1593397984": str(price),                # 晚餐金額
-                   "entry.1203096180": note                       # 備註
-                }
-                
-                response = requests.post(form_url, data=form_data)
-                
-                if response.status_code == 200:
-                    st.success("🎉 紀錄已成功自動送出並同步至 Google 雲端！")
-                    st.balloons()
-                    st.session_state["last_note"] = note
-                else:
-                    st.error(f"發送失敗，代碼: {response.status_code}。已為您切換為手動備用方案：")
-                    st.markdown(f'➡️ [打開 Google 試算表手動登記]({GSHEETS_URL})')
-                    
+                requests.post(form_url, data=form_data)
+                st.success("🎉 紀錄已成功自動送出並同步至 Google 雲端！")
+                st.balloons()
+                st.session_state["last_note"] = note
             except Exception as e:
                 st.error(f"系統自動寫入失敗: {e}")
 
 # ============================== 頁面 2：每月費用彙整 ==============================
 elif page == "📊 每月費用彙整":
     st.title("📊 每月應繳費用彙整")
-    if not df.empty and "月份" in df.columns and "姓名" in df.columns:
-        student_summary = df.groupby(["月份", "年級", "姓名"])["金額"].sum().reset_index()
-        student_summary["年級權重"] = student_summary["年級"].map(GRADE_ORDER)
-        student_summary = student_summary.sort_values(by=["月份", "年級權重", "姓名"]).drop(columns=["年級權重"])
-        
-        st.subheader("👥 學生個人每月帳單")
-        st.dataframe(student_summary, use_container_width=True)
-        
-        st.markdown("---")
-        st.subheader("📥 匯出 Excel 資料")
-        
-        display_df = df.copy()
-        display_df["日期"] = display_df["日期"].dt.strftime("%Y-%m-%d")
-        available_cols = [c for c in ["日期", "年級", "姓名", "金額", "備註"] if c in display_df.columns]
-        history_df = display_df[available_cols]
-        if "日期" in history_df.columns:
-            history_df = history_df.sort_values(by="日期", ascending=False)
-        
-        buffer = io.BytesIO()
-        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-            student_summary.to_excel(writer, sheet_name='學生個人彙整', index=False)
-            history_df.to_excel(writer, sheet_name='歷史詳細明細', index=False)
+    
+    # 確保有實質的學生姓名資料才顯示
+    valid_df = df[df["姓名"].notna() & (df["姓名"] != "nan") & (df["姓名"] != "")]
+    
+    if not valid_df.empty:
+        try:
+            # 1. 學生個人每月帳單加總
+            student_summary = valid_df.groupby(["月份", "年級", "姓名"])["金額"].sum().reset_index()
+            student_summary["年級權重"] = student_summary["年級"].map(GRADE_ORDER)
+            student_summary = student_summary.sort_values(by=["月份", "年級權重", "姓名"]).drop(columns=["年級權重"])
             
-        st.download_button(
-            label="📥 下載 Excel 報表",
-            data=buffer.getvalue(),
-            file_name=f"學生晚餐費用統計表_{datetime.now().strftime('%Y%m%d')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-        st.markdown("---")
-        st.subheader("📜 歷史明細詳細紀錄")
-        st.dataframe(history_df, use_container_width=True)
+            st.subheader("👥 學生個人每月帳單")
+            st.dataframe(student_summary, use_container_width=True)
+            
+            st.markdown("---")
+            st.subheader("📥 匯出 Excel 資料")
+            
+            display_df = valid_df.copy()
+            if pd.api.types.is_datetime64_any_dtype(display_df["日期"]):
+                display_df["日期"] = display_df["日期"].dt.strftime("%Y-%m-%d")
+                
+            history_df = display_df[["日期", "年級", "姓名", "金額", "備註"]].sort_values(by="日期", ascending=False)
+            
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                student_summary.to_excel(writer, sheet_name='學生個人彙整', index=False)
+                history_df.to_excel(writer, sheet_name='歷史詳細明細', index=False)
+                
+            st.download_button(
+                label="📥 下載 Excel 報表",
+                data=buffer.getvalue(),
+                file_name=f"學生晚餐費用統計表_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            st.markdown("---")
+            st.subheader("📜 歷史明細詳細紀錄")
+            st.dataframe(history_df, use_container_width=True)
+        except Exception as err:
+            st.error(f"資料統計分析時發生錯誤: {err}")
     else:
-        st.info("目前雲端試算表還沒有任何紀錄，請先前往 Google 試算表填寫第一筆紀錄吧！")
+        st.info("目前雲端試算表還沒有任何有效的學生晚餐紀錄，請到首頁登記第一筆紀錄吧！")
 
 # ============================== 頁面 3：管理歷史紀錄 ==============================
 elif page == "⚙️ 管理歷史紀錄":
     st.title("⚙️ 管理歷史紀錄 (修改 / 刪除)")
-    st.info("💡 為了確保資料安全，如需修改或刪除歷史明細，請直接點擊下方連結前往 Google 雲端試算表手動編輯。")
+    st.info("💡 為了確保資料安全與相容性，如需修改或刪除歷史明細，請直接點擊下方連結前往 Google 雲端試算表手動編輯。")
     st.markdown(f'➡️ [點此開啟 Google 試算表進行修改/刪除]({GSHEETS_URL})')

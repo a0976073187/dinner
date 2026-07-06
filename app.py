@@ -102,12 +102,12 @@ if page == "📝 填寫晚餐紀錄":
                 
                 form_url = "https://docs.google.com/forms/d/1F_jL39Vf3IL8rdUVvybRuJt54NRy4SyfRdv_m_T9rzg/formResponse"
                 
-                form_data = {
-                    "entry.111111111": date.strftime('%Y-%m-%d'), # 日期
-                    "entry.222222222": pure_name,                  # 學生姓名
-                    "entry.333333333": str(price),                 # 晚餐金額
-                    "entry.444444444": note                        # 備註
-                }
+               form_data = {
+                   "entry.569300600": date.strftime('%Y-%m-%d'), # 日期
+                   "entry.1017833502": pure_name,                 # 學生姓名
+                   "entry.1593397984": str(price),                # 晚餐金額
+                   "entry.1203096180": note                       # 備註
+        }
                 
                 response = requests.post(form_url, data=form_data)
                 

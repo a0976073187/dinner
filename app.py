@@ -95,10 +95,32 @@ if page == "📝 填寫晚餐紀錄":
         if selected_display == "請選擇學生...":
             st.error("❌ 請先選擇一位學生姓名！")
         else:
-            # 💡 因為 Python 3.14 雲端環境無法安裝寫入套件，提示使用者至試算表登記
-            st.warning("⚠️ 由於目前雲端平台 Python 版本限制，請點擊下方按鈕直接在 Google 試算表中登記此筆紀錄。")
-            st.markdown(f'請點選此處前往 ➡️ [打開 Google 試算表手動登記]({GSHEETS_URL})')
-            st.info(f"建議填寫內容： 日期: {date.strftime('%Y-%m-%d')} | 學生姓名: {selected_display.split('] ')[1]} | 晚餐金額: {price} | 備註: {note}")
+            try:
+                import requests
+                
+                pure_name = selected_display.split("] ")[1] if "] " in selected_display else selected_display
+                
+                form_url = "https://google.com"
+                
+                form_data = {
+                    "entry.111111111": date.strftime('%Y-%m-%d'), # 日期
+                    "entry.222222222": pure_name,                  # 學生姓名
+                    "entry.333333333": str(price),                 # 晚餐金額
+                    "entry.444444444": note                        # 備註
+                }
+                
+                response = requests.post(form_url, data=form_data)
+                
+                if response.status_code == 200:
+                    st.success("🎉 紀錄已成功自動送出並同步至 Google 雲端！")
+                    st.balloons()
+                    st.session_state["last_note"] = note
+                else:
+                    st.error(f"發送失敗，代碼: {response.status_code}。已為您切換為手動備用方案：")
+                    st.markdown(f'➡️ [打開 Google 試算表手動登記]({GSHEETS_URL})')
+                    
+            except Exception as e:
+                st.error(f"系統自動寫入失敗: {e}")
 
 # ============================== 頁面 2：每月費用彙整 ==============================
 elif page == "📊 每月費用彙整":

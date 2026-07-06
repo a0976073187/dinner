@@ -40,7 +40,6 @@ name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_inf
 
 # ============================== 核心修正：統一從 Google 試算表載入資料 ==============================
 try:
-   try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     df = conn.read(spreadsheet=GSHEETS_URL, ttl=0)
     

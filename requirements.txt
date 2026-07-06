@@ -1,5 +1,2 @@
-openpyxl
-pandas
 streamlit
-st-theme
 streamlit-gsheets

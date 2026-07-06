@@ -107,7 +107,7 @@ if page == "📝 填寫晚餐紀錄":
                    "entry.1017833502": pure_name,                 # 學生姓名
                    "entry.1593397984": str(price),                # 晚餐金額
                    "entry.1203096180": note                       # 備註
-        }
+              }
                 
                 response = requests.post(form_url, data=form_data)
                 

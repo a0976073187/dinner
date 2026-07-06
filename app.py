@@ -18,7 +18,7 @@ st.set_page_config(
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
 # ⚠️ 這是您的 Google 試算表真實網址
-GSHEETS_URL = "https://docs.google.com/spreadsheets/d/1dZf3ua1q_FQkOhA8b_7__R_qWHZNsz2ror37OfUnILc/edit?gid=0#gid=0"
+GSHEETS_URL = "https://docs.google.com"
 
 # ============================== 學生名單與年級設定區 ==============================
 STUDENT_LIST = {

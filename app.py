@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 import os
@@ -42,22 +41,19 @@ name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_inf
 
 # ============================== 核心修正：統一從 Google 試算表載入資料 ==============================
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(spreadsheet=GSHEETS_URL, ttl=0)
+    csv_url = GSHEETS_URL.replace("/edit", "/export?format=csv")
+    df = pd.read_csv(csv_url)
     
     if df is None or df.empty:
         df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註"])
     else:
-        # 強制清除欄位名稱前後可能不小心打到的空白鍵
         df.columns = df.columns.str.strip()
         
-        # 核心修正：將 Google 試算表的欄位名稱，精準轉換回舊程式碼需要的名字
         df = df.rename(columns={
             "學生姓名": "姓名", 
             "晚餐金額": "金額"
         })
         
-        # 自動根據「姓名」去 STUDENT_LIST 查出「年級」
         if "姓名" in df.columns:
             df["年級"] = df["姓名"].map(STUDENT_LIST).fillna("未知名級")
         else:
@@ -66,7 +62,6 @@ try:
 except Exception as e:
     st.error(f"雲端資料庫連線失敗: {e}")
     df = pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註"])
-
 # --- 側邊欄導覽選單 ---
 st.sidebar.title("系統選單")
 if has_logo:

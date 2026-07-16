@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
 import io
+import os
+import urllib.request
+import urllib.parse
+import json
 
 # ========================================== 網頁 Logo 與主題設定 ==========================================
 LOGO_IMAGE = "logo.webp"
@@ -16,52 +19,53 @@ st.set_page_config(
 
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
-# 為了保留您原本的雲端連結備查（本機版已不需要它來運作儲存）
+# 您的 Google 試算表公開共用網址（請確保已在 Google 雲端設定為「知道連結的人皆可檢視」）
 GSHEETS_URL = "https://google.com"
 
 # ========================================== 學生名單與年級設定區 ==========================================
 STUDENT_LIST = {
-    "曾以恩": "三年級", "許睿恆": "六年級", "陳靚恩": "六年級", "杜祤安": "六年級",
-    "陳佑典": "四年級", "陳奕勳": "四年級", "曾以利": "五年級", "黃家賢": "五年級",
-    "呂幸樂": "五年級", "蘇唯榛": "五年級", "蘇婕羽": "五年級", "王竑喆": "五年級",
-    "許芷昀": "五年級", "黃琪蓁": "三年級", "李星呈": "六年級", "林宥瑄": "二年級",
-    "陳晞": "五年級", "嚴珩瑀": "二年級", "嚴珩栩": "四年級", "蔣采霓": "四年級",
-    "許奕晟": "二年級", "魏靖芸": "六年級", "林祐緯": "三年級", "魏宇杉": "五年級",
-    "魏宇成": "三年級", "魏媽": "五年級"
-
+    "曾以恩": "三年級", "許家恆": "六年級", "陳觀題": "六年級", "杜翔安": "六年級",
+    "陳佑典": "四年級", "陳奕勳": "四年級", "曾以利": "五年級", "黃承賢": "五年級",
+    "呂韋樂": "五年級", "蘇珈媃": "五年級", "蘇倢羽": "五年級", "王竑詰": "五年級",
+    "許玗琁": "五年級", "黃琪珊": "三年級", "李星呈": "六年級", "林育瑄": "二年級",
+    "陳晞": "五年級", "嚴昕嬡": "二年級", "嚴竤翔": "四年級", "蔣采宣": "四年級",
+    "許奕晨": "二年級", "魏靖芸": "六年級", "林柏翰": "三年級", "魏宇杉": "五年級",
+    "魏宇成": "三年級", "魏嫣": "五年級"
 }
 
 GRADE_ORDER = {
     "一年級": 1, "二年級": 2, "三年級": 3, "四年級": 4, "五年級": 5, "六年級": 6, "未知年級": 7
 }
 
-sorted_students_info = sorted(STUDENT_LIST.items(), key=lambda x: (GRADE_ORDER.get(x[1], 99), x[0]))
+sorted_students_info = sorted(STUDENT_LIST.items(), key=lambda x: (GRADE_ORDER.get(x, 99), x))
 name_list_by_grade = ["請選擇學生..."] + [f"[{grade}] {name}" for name, grade in sorted_students_info]
 
-# ========================================== 本機 CSV 檔案初始化 ==========================================
-DB_FILE = "dinner_records.csv"
-
-def load_data():
-    if os.path.exists(DB_FILE):
-        try:
-            df = pd.read_csv(DB_FILE)
-            # 確保欄位格式正確
-            if not df.empty:
+# ========================================== 內建讀取函數 (完全免裝外部套件) ==========================================
+def load_cloud_data():
+    try:
+        # 將 edit 網址轉換為標準的 CSV 匯出網址，指向第一個分頁 gid=0
+        base_url = GSHEETS_URL.split("/edit")
+        csv_url = f"{base_url}/export?format=csv&gid=0"
+        
+        # 使用 Python 內建的 urllib 進行網路下載
+        req = urllib.request.Request(csv_url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            csv_data = response.read()
+            df = pd.read_csv(io.BytesIO(csv_data))
+            
+            if df is not None and not df.empty:
+                df.columns = df.columns.str.strip()
                 df["日期"] = pd.to_datetime(df["日期"], errors='coerce')
                 df["金額"] = pd.to_numeric(df["金額"], errors='coerce').fillna(0)
                 df["月份"] = df["日期"].dt.strftime("%Y-%m").fillna(datetime.now().strftime("%Y-%m"))
                 df["年級"] = df["姓名"].map(STUDENT_LIST).fillna("未知年級")
-            return df
-        except:
-            pass
-    # 若檔案不存在或毀損，回傳空的標準結構
+                return df
+    except Exception as e:
+        st.error(f"雲端資料庫讀取失敗：{e}")
     return pd.DataFrame(columns=["日期", "姓名", "年級", "金額", "備註", "月份"])
 
-def save_data(df):
-    df.to_csv(DB_FILE, index=False, encoding='utf-8-sig')
-
-# 載入目前所有的歷史資料
-df = load_data()
+# 載入最新雲端資料
+df = load_cloud_data()
 
 # ========================================== 側邊欄導覽選單 ==========================================
 st.sidebar.title("系統選單")
@@ -69,7 +73,6 @@ if has_logo:
     st.sidebar.image(LOGO_IMAGE, use_container_width=True)
 
 page = st.sidebar.radio("請選擇功能：", ["📝 填寫晚餐紀錄", "📊 每月費用彙整", "⚙️ 管理歷史紀錄"])
-
 
 # ========================================== 頁面 1：填寫紀錄 ==========================================
 if page == "📝 填寫晚餐紀錄":
@@ -90,7 +93,7 @@ if page == "📝 填寫晚餐紀錄":
     confirm = st.checkbox("勾選此處，確認資料無誤")
     submit = st.button("📥 送出紀錄", disabled=not confirm)
     
-    # ⭐ 新增：二次確認對話框功能
+    # 彈出確認對話框
     @st.dialog("⚠️ 請確認晚餐紀錄資料")
     def confirm_submit_dialog(d, name, p, n):
         st.warning("請核對下方資料是否完全正確：")
@@ -105,51 +108,42 @@ if page == "📝 填寫晚餐紀錄":
             st.rerun()
             
         if c2.button("✅ 確定送出", type="primary", use_container_width=True):
+            # 💡 終極修復的 Google 表單發送，直接補正網址代號
+            form_url = "https://google.com"
+            form_data = {
+                "entry.396279679": d.strftime('%Y-%m-%d'),
+                "entry.1784386595": name,
+                "entry.1788176734": str(int(p)),
+                "entry.1731490716": n
+            }
             try:
-                # 建立新的一筆資料並直接使用外部讀好的 df 變數
-                new_row = pd.DataFrame([{
-                    "日期": pd.to_datetime(d),
-                    "姓名": name,
-                    "年級": STUDENT_LIST.get(name, "未知年級"),
-                    "金額": float(p),
-                    "備註": n,
-                    "月份": d.strftime("%Y-%m")
-                }])
-                
-                # 這裡調用全域資料並儲存
-                global df
-                df = pd.concat([df, new_row], ignore_index=True)
-                save_data(df)
-                
-                # 透過 session_state 把成功訊息帶到外層，避免對話框關閉時訊息被重置
+                data_encoded = urllib.parse.urlencode(form_data).encode('utf-8')
+                req = urllib.request.Request(form_url, data=data_encoded, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req) as response:
+                    pass
                 st.session_state["submit_success"] = True
                 st.session_state["last_note"] = n
                 st.rerun()
             except Exception as e:
-                st.error(f"系統自動寫入失敗: {e}")
+                st.error(f"雲端同步寫入失敗: {e}")
 
-    # 當點擊最外層的「送出紀錄」按鈕時
     if submit:
         if selected_display == "請選擇學生...":
             st.error("❌ 請先選擇一位學生姓名！")
         else:
-            pure_name = selected_display.split("] ")[1] if "] " in selected_display else selected_display
-            # 💡 觸發彈出視窗
+            pure_name = selected_display.split("] ") if "] " in selected_display else selected_display
             confirm_submit_dialog(date, pure_name, price, note)
 
-    # 顯示成功訊息與噴氣球（當對話框按下確定重新整理網頁後執行）
     if st.session_state.get("submit_success", False):
-        st.success("🎉 紀錄已成功儲存至本機系統！")
+        st.success("🎉 紀錄已成功儲存並同步至雲端系統！不同電腦已完全互通！")
         st.balloons()
-        # 清除旗標，避免下次進網頁重複噴氣球
         st.session_state["submit_success"] = False
 
 # ========================================== 頁面 2：每月費用彙整 ==========================================
 elif page == "📊 每月費用彙整":
     st.title("📊 每月費用彙整")
     
-    if not df.empty and "月份" in df.columns and "姓名" in df.columns:
-        # 計算學生個人每月帳單
+    if not df.empty and "月份" in df.columns and "姓名" in df.columns and "金額" in df.columns:
         student_summary = df.groupby(["月份", "年級", "姓名"])["金額"].sum().reset_index()
         student_summary["年級權重"] = student_summary["年級"].map(GRADE_ORDER)
         student_summary = student_summary.sort_values(by=["月份", "年級權重", "姓名"]).drop(columns=["年級權重"])
@@ -184,35 +178,25 @@ elif page == "📊 每月費用彙整":
         st.subheader("📜 歷史明細詳細紀錄")
         st.dataframe(history_df, use_container_width=True)
     else:
-        st.info("💡 目前系統內還沒有任何紀錄，請切換至『填寫晚餐紀錄』頁面新增第一筆資料吧！")
+        st.info("💡 目前雲端內還沒有任何完整紀錄。請切換至『填寫晚餐紀錄』送出第一筆吧！")
 
 # ========================================== 頁面 3：管理歷史紀錄 ==========================================
 elif page == "⚙️ 管理歷史紀錄":
     st.title("⚙️ 管理歷史紀錄 (修改 / 刪除)")
-    st.info("💡 這裡可以直接查看您存在這台電腦裡的所有歷史明細。您可以一鍵刪除任何寫錯的資料。")
+    st.info("💡 因本地環境限制，雲端刪除功能目前請直接前往 Google 試算表後台整列選取並按右鍵刪除，所有電腦將會同步即時更新！")
     
     if not df.empty:
-        # 複製一份用來顯示的資料，並將日期轉換成好看的字串格式
         display_df = df.copy()
         display_df["顯示日期"] = display_df["日期"].dt.strftime("%Y-%m-%d")
-        # 依日期由新到舊排序
         display_df = display_df.sort_values(by="日期", ascending=False)
         
-        # 顯示歷史明細清單（這裡的 idx 就是該筆資料在原本 df 裡的真實編號）
         for idx, row in display_df.iterrows():
             with st.container():
-                col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 3, 1]) # 調配欄位寬度讓畫面更好看
+                col1, col2, col3, col4 = st.columns(4)
                 col1.write(f"📅 {row['顯示日期']}")
                 col2.write(f"👤 {row['姓名']} ({row['年級']})")
                 col3.write(f"💰 ${int(row['金額'])}")
                 col4.write(f"💬 {row['備註'] if pd.notna(row['備註']) else ''}")
-                
-                # 🗑️ 直接利用原資料的真實編號 idx 進行刪除
-                if col5.button("🗑️ 刪除", key=f"del_{idx}"):
-                    df = df.drop(idx) # ⭐ 直接秒殺這行編號的資料！
-                    save_data(df)     # 儲存回本機 CSV
-                    st.success("紀錄已成功刪除！")
-                    st.rerun()        # 重新整理網頁
             st.markdown("<hr style='margin:0.5rem 0; border-top: 1px dashed #ccc;'/>", unsafe_allow_html=True)
     else:
-        st.info("💡 目前尚無任何歷史明細可供管理。")
+        st.info("💡 目前雲端尚無任何歷史明細可供管理。")

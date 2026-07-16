@@ -36,7 +36,8 @@ GRADE_ORDER = {
 }
 
 sorted_students_info = sorted(STUDENT_LIST.items(), key=lambda x: (GRADE_ORDER.get(x[1], 99), x[0]))
-name_list_by_grade = [f"[{grade}] {name}" for name, grade in sorted_students_info]
+name_list_by_grade = ["請選擇學生..."] + [f"[{grade}] {name}" for name, grade in sorted_students_info]
+
 
 # ============================== 統一從 Google 試算表載入資料 ==============================
 try:

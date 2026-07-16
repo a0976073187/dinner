@@ -166,29 +166,27 @@ elif page == "⚙️ 管理歷史紀錄":
     st.info("💡 這裡可以直接查看您存在這台電腦裡的所有歷史明細。您可以一鍵刪除任何寫錯的資料。")
     
     if not df.empty:
+        # 複製一份用來顯示的資料，並將日期轉換成好看的字串格式
         display_df = df.copy()
-        display_df["日期"] = display_df["日期"].dt.strftime("%Y-%m-%d")
-        display_df = display_df.sort_values(by="日期", ascending=False).reset_index(drop=True)
+        display_df["顯示日期"] = display_df["日期"].dt.strftime("%Y-%m-%d")
+        # 依日期由新到舊排序
+        display_df = display_df.sort_values(by="日期", ascending=False)
         
-        # 顯示歷史明細清單
+        # 顯示歷史明細清單（這裡的 idx 就是該筆資料在原本 df 裡的真實編號）
         for idx, row in display_df.iterrows():
             with st.container():
-                col1, col2, col3, col4, col5 = st.columns([2, 2, 2, 3, 2])
-                col1.write(f"📅 {row['日期']}")
+                col1, col2, col3, col4, col5 = st.columns([2, 2, 1, 3, 1]) # 調配欄位寬度讓畫面更好看
+                col1.write(f"📅 {row['顯示日期']}")
                 col2.write(f"👤 {row['姓名']} ({row['年級']})")
                 col3.write(f"💰 ${int(row['金額'])}")
                 col4.write(f"💬 {row['備註'] if pd.notna(row['備註']) else ''}")
                 
-                # 刪除單筆資料功能
+                # 🗑️ 直接利用原資料的真實編號 idx 進行刪除
                 if col5.button("🗑️ 刪除", key=f"del_{idx}"):
-                    # 找出原本 df 中的索引並刪除
-                    df = df.drop(df[(df['日期'].dt.strftime('%Y-%m-%d') == row['日期']) & 
-                                   (df['姓名'] == row['姓名']) & 
-                                   (df['金額'] == row['金額']) & 
-                                   (df['備註'] == row['備註'])].index)
-                    save_data(df)
-                    st.success("Row deleted successfully!")
-                    st.rerun()
+                    df = df.drop(idx) # ⭐ 直接秒殺這行編號的資料！
+                    save_data(df)     # 儲存回本機 CSV
+                    st.success("紀錄已成功刪除！")
+                    st.rerun()        # 重新整理網頁
             st.markdown("<hr style='margin:0.5rem 0; border-top: 1px dashed #ccc;'/>", unsafe_allow_html=True)
     else:
         st.info("💡 目前尚無任何歷史明細可供管理。")

@@ -41,7 +41,9 @@ name_list_by_grade = ["請選擇學生..."] + [f"[{grade}] {name}" for name, gra
 try:
     clean_url = GSHEETS_URL.split("/edit")[0]  + "/edit"
         
-    csv_url = GSHEETS_URL.replace("/edit", "/export?format=csv").replace("#", "&")
+    base_url = GSHEETS_URL.split("/edit")[0]
+    csv_url = f"{base_url}/export?format=csv&gid=122"
+
 
     raw_df = pd.read_csv(csv_url)
     

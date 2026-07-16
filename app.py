@@ -14,10 +14,8 @@ st.set_page_config(
     layout="centered"
 )
 
-# 💡 強制阻斷 Google 翻譯修改網頁 DOM 節點，徹底防止黃臉 removeChild 崩潰
 st.markdown('<meta name="google" content="notranslate">', unsafe_allow_html=True)
 
-# ⚠️ 這是您的 Google 試算表真實網址
 GSHEETS_URL = "https://docs.google.com/spreadsheets/d/1dZf3ua1q_FQkOhA8b_7__R_qWHZNsz2ror37OfUnILc/edit?resourcekey=&gid=1227634028#gid=1227634028"
 
 # ============================== 學生名單與年級設定區 ==============================

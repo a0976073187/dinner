@@ -111,7 +111,7 @@ if page == "📝 填寫晚餐紀錄":
                 
                 pure_name = selected_display.split("] ")[1] if "] " in selected_display else selected_display
                 
-                form_url = "https://docs.google.com/forms/d/1F_jL39Vf3IL8rdUVvybRuJt54NRy4SyfRdv_m_T9rzg/formResponse"
+                form_url = "https://docs.google.com/forms/d/1F_jL39Vf3IL8rdUVvybRuJt54NRy4SyfRdv_m_T9rzg/preview"
                 
                 form_data = {
                    "entry.396279679": date.strftime('%Y-%m-%d'), # 日期

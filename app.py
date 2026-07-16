@@ -42,7 +42,7 @@ try:
     clean_url = GSHEETS_URL.split("/edit")[0]  + "/edit"
         
     base_url = GSHEETS_URL.split("/edit")[0]
-    csv_url = f"{base_url}/export?format=csv&gid=122"
+    csv_url = f"{base_url}/export?format=csv&gid=0"
 
 
     raw_df = pd.read_csv(csv_url)

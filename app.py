@@ -71,6 +71,7 @@ if has_logo:
 page = st.sidebar.radio("請選擇功能：", ["📝 填寫晚餐紀錄", "📊 每月費用彙整", "⚙️ 管理歷史紀錄"])
 
 # ========================================== 頁面 1：填寫紀錄 ==========================================
+# ========================================== 頁面 1：填寫紀錄 ==========================================
 if page == "📝 填寫晚餐紀錄":
     if has_logo:
         col1, col2, col3 = st.columns(3)
@@ -89,34 +90,59 @@ if page == "📝 填寫晚餐紀錄":
     confirm = st.checkbox("勾選此處，確認資料無誤")
     submit = st.button("📥 送出紀錄", disabled=not confirm)
     
+    # ⭐ 新增：二次確認對話框功能
+    @st.dialog("⚠️ 請確認晚餐紀錄資料")
+    def confirm_submit_dialog(d, name, p, n):
+        st.warning("請核对下方資料是否完全正確：")
+        st.write(f"📅 **紀錄日期**：{d.strftime('%Y-%m-%d')}")
+        st.write(f"👤 **學生姓名**：{name}")
+        st.write(f"💰 **晚餐金額**：${int(p)} 元")
+        st.write(f"💬 **備註內容**：{n if n else '無'}")
+        st.markdown("---")
+        
+        c1, c2 = st.columns(2)
+        if c1.button("❌ 點此取消", use_container_width=True):
+            st.rerun()
+            
+        if c2.button("✅ 確定送出", type="primary", use_container_width=True):
+            try:
+                # 建立新的一筆資料並直接使用外部讀好的 df 變數
+                new_row = pd.DataFrame([{
+                    "日期": pd.to_datetime(d),
+                    "姓名": name,
+                    "年級": STUDENT_LIST.get(name, "未知年級"),
+                    "金額": float(p),
+                    "備註": n,
+                    "月份": d.strftime("%Y-%m")
+                }])
+                
+                # 這裡調用全域資料並儲存
+                global df
+                df = pd.concat([df, new_row], ignore_index=True)
+                save_data(df)
+                
+                # 透過 session_state 把成功訊息帶到外層，避免對話框關閉時訊息被重置
+                st.session_state["submit_success"] = True
+                st.session_state["last_note"] = n
+                st.rerun()
+            except Exception as e:
+                st.error(f"系統自動寫入失敗: {e}")
+
+    # 當點擊最外層的「送出紀錄」按鈕時
     if submit:
         if selected_display == "請選擇學生...":
             st.error("❌ 請先選擇一位學生姓名！")
         else:
-            try:
-                # 切出純姓名
-                pure_name = selected_display.split("] ")[1] if "] " in selected_display else selected_display
-                
-                # 建立新的一筆資料
-                new_row = pd.DataFrame([{
-                    "日期": pd.to_datetime(date),
-                    "姓名": pure_name,
-                    "年級": STUDENT_LIST.get(pure_name, "未知年級"),
-                    "金額": float(price),
-                    "備註": note,
-                    "月份": date.strftime("%Y-%m")
-                }])
-                
-                # 合併並儲存至本機 CSV 檔案
-                df = pd.concat([df, new_row], ignore_index=True)
-                save_data(df)
-                
-                st.success("🎉 紀錄已成功儲存至本機系統！")
-                st.balloons()
-                st.session_state["last_note"] = note
-                st.rerun()
-            except Exception as e:
-                st.error(f"系統自動寫入失敗: {e}")
+            pure_name = selected_display.split("] ")[1] if "] " in selected_display else selected_display
+            # 💡 觸發彈出視窗
+            confirm_submit_dialog(date, pure_name, price, note)
+
+    # 顯示成功訊息與噴氣球（當對話框按下確定重新整理網頁後執行）
+    if st.session_state.get("submit_success", False):
+        st.success("🎉 紀錄已成功儲存至本機系統！")
+        st.balloons()
+        # 清除旗標，避免下次進網頁重複噴氣球
+        st.session_state["submit_success"] = False
 
 # ========================================== 頁面 2：每月費用彙整 ==========================================
 elif page == "📊 每月費用彙整":

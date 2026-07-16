@@ -39,9 +39,8 @@ name_list_by_grade = ["請選擇學生..."] + [f"[{grade}] {name}" for name, gra
 
 # ============================== 統一從 Google 試算表載入資料 ==============================
 try:
-    clean_url = GSHEETS_URL.split("/edit") + "/edit"
+    clean_url = GSHEETS_URL.split("/edit")[0]  + "/edit"
         
-        # 💡 終極局部修正：用純文字取代法直接換網址，100% 避開 list 拼接錯誤！
     csv_url = GSHEETS_URL.replace("/edit", "/export?format=csv").replace("#", "&")
 
     raw_df = pd.read_csv(csv_url)
@@ -49,8 +48,7 @@ try:
     if raw_df is not None and not raw_df.empty:
         raw_df.columns = raw_df.columns.str.strip()
         df = pd.DataFrame()
-        
-        # 💡 局部核心修正：如果第一欄是時間戳記，改用欄位位置強制指定，完全解決 None 的問題
+    
         if "時間戳記" in raw_df.columns or raw_df.shape[1] >= 5:
             df["日期"] = raw_df.iloc[:, 1]  # 第 2 欄是日期
             df["姓名"] = raw_df.iloc[:, 2]  # 第 3 欄是學生姓名
